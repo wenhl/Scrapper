@@ -14,6 +14,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
 # All Progressive scrape outputs (CSVs, error logs) live under output/Progressive.
 PROGRESSIVE_DIR = os.path.join(OUTPUT_DIR, "Progressive")
+BASE_URL = "https://www.progressiveagent.com/local-agent"
 
 # Define a mapping for the CSV columns.
 # The key is the internal name used in the code,
@@ -91,6 +92,39 @@ def parse_state_city_links(html):
                     city_links.append(href)
     print(f"Found {len(city_links)} city links in the state page.")
     return city_links
+
+def save_states_list():
+    """
+    Fetches BASE_URL, extracts state-level links, and writes the unique state slugs to output/states.txt.
+    """
+    print(f"Fetching states from {BASE_URL}")
+    try:
+        html = fetch_html(BASE_URL)
+    except Exception as exc:
+        raise RuntimeError(f"Error fetching {BASE_URL}: {exc}") from exc
+
+    soup = BeautifulSoup(html, "html.parser")
+    states = set()
+    for anchor in soup.select("ul.state-list a"):
+        href = anchor.get("href", "")
+        parsed = urlparse(href)
+        segments = [seg for seg in parsed.path.split("/") if seg]
+        if len(segments) >= 2 and segments[0] == "local-agent":
+            slug = segments[1].strip().lower()
+        else:
+            slug = "-".join(anchor.get_text(strip=True).lower().split())
+        if slug:
+            states.add(slug)
+
+    if not states:
+        raise RuntimeError("No states found on the base URL page.")
+
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    states_path = os.path.join(OUTPUT_DIR, "states.txt")
+    with open(states_path, "w", encoding="utf-8") as sf:
+        for state in sorted(states):
+            sf.write(f"{state}\n")
+    print(f"Saved {len(states)} states to {states_path}")
 
 def parse_city_agent_links(html):
     """
@@ -388,8 +422,7 @@ def scrape_state(state):
     commercial_output_path = os.path.join(PROGRESSIVE_DIR, f"{state}CommercialAgents.csv")
     error_path = os.path.join(PROGRESSIVE_DIR, f"{state}Errors.txt")
 
-    base_url = "https://www.progressiveagent.com/local-agent"
-    state_url = f"{base_url}/{state}/"
+    state_url = f"{BASE_URL}/{state}/"
     print(f"Fetching state page: {state_url}")
 
     try:
@@ -504,7 +537,16 @@ def main():
         action="store_true",
         help="Retry the agent URLs listed in the state's error log instead of running a full scrape.",
     )
+    parser.add_argument(
+        "--save-states",
+        action="store_true",
+        help="Fetch BASE_URL and write the list of states to output/states.txt.",
+    )
     args = parser.parse_args()
+
+    if args.save_states:
+        save_states_list()
+        return
 
     if args.url:
         parsed = urlparse(args.url)

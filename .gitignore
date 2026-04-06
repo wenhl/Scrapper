@@ -2,3 +2,5 @@ output/
 input/
 archive/
 .venv
+__pycache__/
+*.pyc
