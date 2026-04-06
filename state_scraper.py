@@ -10,6 +10,11 @@ import sys
 from urllib.parse import quote, urlparse
 import argparse
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+OUTPUT_DIR = os.path.join(BASE_DIR, "output")
+# All Progressive scrape outputs (CSVs, error logs) live under output/Progressive.
+PROGRESSIVE_DIR = os.path.join(OUTPUT_DIR, "Progressive")
+
 # Define a mapping for the CSV columns.
 # The key is the internal name used in the code,
 # and the value is the CSV column header.
@@ -225,12 +230,11 @@ def collect_city_agents(city_url, error_path):
 def find_error_file(state):
     """
     Returns the most likely error log file for the given state.
-    Looks both in Progressive/<state>Errors.txt and Progressive/error/<state>Errors.txt.
+    Looks both in output/Progressive/<state>Errors.txt and output/Progressive/error/<state>Errors.txt.
     """
-    output_dir = os.path.join(os.getcwd(), "Progressive")
     candidates = [
-        os.path.join(output_dir, f"{state}Errors.txt"),
-        os.path.join(output_dir, "error", f"{state}Errors.txt"),
+        os.path.join(PROGRESSIVE_DIR, f"{state}Errors.txt"),
+        os.path.join(PROGRESSIVE_DIR, "error", f"{state}Errors.txt"),
     ]
     for path in candidates:
         if os.path.isfile(path):
@@ -310,8 +314,7 @@ def retry_failed_agents(state):
     Reprocesses agent and city pages that previously failed and were logged to the error file.
     Successful retries are appended to the standard state CSV outputs.
     """
-    output_dir = os.path.join(os.getcwd(), "Progressive")
-    os.makedirs(output_dir, exist_ok=True)
+    os.makedirs(PROGRESSIVE_DIR, exist_ok=True)
     try:
         error_path = find_error_file(state)
     except FileNotFoundError as exc:
@@ -324,8 +327,8 @@ def retry_failed_agents(state):
         print(f"No agent or city URLs found in {error_path}. Nothing to retry.")
         return
 
-    output_path = os.path.join(output_dir, f"{state}Agents.csv")
-    commercial_output_path = os.path.join(output_dir, f"{state}CommercialAgents.csv")
+    output_path = os.path.join(PROGRESSIVE_DIR, f"{state}Agents.csv")
+    commercial_output_path = os.path.join(PROGRESSIVE_DIR, f"{state}CommercialAgents.csv")
     total_agents_from_cities = 0
     total_commercial_from_cities = 0
 
@@ -380,11 +383,10 @@ def scrape_state(state):
      - For each city, processes agent pages using shared helper functions.
      - Writes agent data to a CSV file and logs errors.
     """
-    output_dir = os.path.join(os.getcwd(), "Progressive")
-    os.makedirs(output_dir, exist_ok=True)
-    output_path = os.path.join(output_dir, f"{state}Agents.csv")
-    commercial_output_path = os.path.join(output_dir, f"{state}CommercialAgents.csv")
-    error_path = os.path.join(output_dir, f"{state}Errors.txt")
+    os.makedirs(PROGRESSIVE_DIR, exist_ok=True)
+    output_path = os.path.join(PROGRESSIVE_DIR, f"{state}Agents.csv")
+    commercial_output_path = os.path.join(PROGRESSIVE_DIR, f"{state}CommercialAgents.csv")
+    error_path = os.path.join(PROGRESSIVE_DIR, f"{state}Errors.txt")
 
     base_url = "https://www.progressiveagent.com/local-agent"
     state_url = f"{base_url}/{state}/"
@@ -436,12 +438,11 @@ def scrape_city(city_link):
     else:
         state, city = "Unknown", "Unknown"
 
-    output_dir = os.path.join(os.getcwd(), "Progressive")
-    os.makedirs(output_dir, exist_ok=True)
+    os.makedirs(PROGRESSIVE_DIR, exist_ok=True)
     output_filename = f"{state}_{city}_Agents.csv"
-    output_path = os.path.join(output_dir, output_filename)
+    output_path = os.path.join(PROGRESSIVE_DIR, output_filename)
     error_filename = f"{state}_{city}_Errors.txt"
-    error_path = os.path.join(output_dir, error_filename)
+    error_path = os.path.join(PROGRESSIVE_DIR, error_filename)
 
     agent_results = collect_city_agents(city_link, error_path)
     if not agent_results:
@@ -467,12 +468,11 @@ def scrape_agency(agent_url):
     else:
         state, city, agency = "Unknown", "Unknown", "Unknown"
     
-    output_dir = os.path.join(os.getcwd(), "Progressive")
-    os.makedirs(output_dir, exist_ok=True)
+    os.makedirs(PROGRESSIVE_DIR, exist_ok=True)
     output_filename = f"{state}_{city}_{agency}_Agent.csv"
-    output_path = os.path.join(output_dir, output_filename)
+    output_path = os.path.join(PROGRESSIVE_DIR, output_filename)
     error_filename = f"{state}_{city}_{agency}_Errors.txt"
-    error_path = os.path.join(output_dir, error_filename)
+    error_path = os.path.join(PROGRESSIVE_DIR, error_filename)
 
     try:
         agency_html = fetch_html(agent_url)

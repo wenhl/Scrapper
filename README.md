@@ -1,6 +1,6 @@
 # Scrapper
 
-Python utilities for harvesting Progressive local-agent listings and exporting the results. The main `state_scraper.py` script walks state and city pages, scrapes each agent profile, and appends the data to CSV files inside `Progressive/`. Helper scripts let you batch-run multiple states and convert the generated CSVs into an Excel workbook.
+Python utilities for harvesting XXXX local-agent listings and exporting the results. The main `state_scraper.py` script walks state and city pages, scrapes each agent profile, and appends the data to CSV files inside `XXXX/`. Helper scripts let you batch-run multiple states and convert the generated CSVs into an Excel workbook.
 
 ## Features
 - Resilient state → city → agent scraping with retries/backoff and informative error logging.
@@ -24,21 +24,21 @@ pip install -r requirements.txt  # or install the packages listed above manually
 ## Usage
 
 ### Scrape an Entire State
-Outputs land in `Progressive/<State>Agents.csv` and `Progressive/<State>CommercialAgents.csv`, with errors logged to `Progressive/<State>Errors.txt`.
+Outputs land in `output/XXXX/<State>Agents.csv` and `ouput/XXXX/<State>CommercialAgents.csv`, with errors logged to `output/XXXX/<State>Errors.txt`.
 
 ```bash
 python state_scraper.py pennsylvania
 ```
 
 ### Scrape a Single City or Agency
-Pass `--url` with the exact Progressive link:
+Pass `--url` with the exact XXXX link:
 
 ```bash
-# City (creates Progressive/pennsylvania_apollo_Agents.csv)
-python state_scraper.py --url "https://www.progressiveagent.com/local-agent/pennsylvania/apollo/"
+# City (creates XXXX/pennsylvania_apollo_Agents.csv)
+python state_scraper.py --url "https://xxxxx/local-agent/pennsylvania/apollo/"
 
-# Agency (creates Progressive/pennsylvania_apollo_example-agency_Agent.csv)
-python state_scraper.py --url "https://www.progressiveagent.com/local-agent/pennsylvania/apollo/example-agency/"
+# Agency (creates XXXX/pennsylvania_apollo_example-agency_Agent.csv)
+python state_scraper.py --url "https://xxxx/local-agent/pennsylvania/apollo/example-agency/"
 ```
 
 ### Retry Only Failed URLs
@@ -53,22 +53,23 @@ Populate `states.txt` (one state slug per line) and run:
 
 ```bash
 ./run_scraper.sh
+ nohup ./run_scraper.sh > run.log 2>&1 & 
 ```
 
 ### Convert CSVs to Excel
 Combine every CSV in a directory into one workbook (one sheet per file):
 
 ```bash
-python csv_to_excel.py Progressive --output progressive_agents.xlsx
+python csv_to_excel.py XXXX --output XXXX_agents.xlsx
 ```
 
 ## Project Structure
 - `state_scraper.py` – core scraper and retry logic.
 - `run_scraper.sh` – loops through `states.txt` and calls the scraper per state.
 - `csv_to_excel.py` – CSV ➜ XLSX converter for the generated outputs.
-- `Progressive/` – created automatically to store CSVs and error logs.
+- `XXXX/` – created automatically to store CSVs and error logs.
 
 ## Notes
 - Scraper uses a browser-like User-Agent header and retry-enabled `requests.Session` to reduce throttling.
 - `.venv/`, `output/`, `input/`, and `archive/` are gitignored so local artifacts stay out of commits.
-- Inspect `Progressive/*Errors.txt` if an execution terminates earlier than expected; each line includes enough context to diagnose or retry.
+- Inspect `XXXX/*Errors.txt` if an execution terminates earlier than expected; each line includes enough context to diagnose or retry.
