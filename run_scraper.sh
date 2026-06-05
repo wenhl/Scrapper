@@ -1,16 +1,33 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Generate the latest list of states before scraping.
-python state_scraper.py --save-states
+carrier="${1:-progressive}"
+python_bin="${PYTHON_BIN:-.venv/bin/python}"
+custom_states_file="${2:-}"
+case "$carrier" in
+  progressive)
+    carrier_dir="Progressive"
+    ;;
+  nationwide)
+    carrier_dir="Nationwide"
+    ;;
+  *)
+    echo "Unsupported carrier: $carrier" >&2
+    exit 1
+    ;;
+esac
+states_file="${custom_states_file:-output/${carrier_dir}/states.txt}"
 
-states_file="output/states.txt"
+if [[ -z "$custom_states_file" ]]; then
+  "$python_bin" state_scraper.py --carrier "$carrier" --save-states
+fi
 
 if [[ ! -f "$states_file" ]]; then
-  echo "Expected $states_file to exist after running --save-states." >&2
+  echo "Expected states file $states_file to exist." >&2
   exit 1
 fi
 
 while IFS= read -r state; do
-  python state_scraper.py "$state"
+  [[ -z "$state" ]] && continue
+  "$python_bin" state_scraper.py --carrier "$carrier" "$state"
 done < "$states_file"

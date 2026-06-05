@@ -1,9 +1,10 @@
 # Scrapper
 
-Python utilities for harvesting XXXX local-agent listings and exporting the results. The main `state_scraper.py` script walks state and city pages, scrapes each agent profile, and appends the data to CSV files inside `XXXX/`. Helper scripts let you batch-run multiple states and convert the generated CSVs into an Excel workbook.
+Python utilities for harvesting insurance agency directory listings and exporting the results. The main `state_scraper.py` script walks state and city pages, scrapes each agency profile, and appends the data to carrier-specific CSV files inside `output/`. Helper scripts let you batch-run multiple states and convert generated CSVs into an Excel workbook.
 
 ## Features
 - Resilient state → city → agent scraping with retries/backoff and informative error logging.
+- Carrier selection for Progressive and Nationwide directories.
 - Support for scraping a single city or agency URL without processing an entire state.
 - Automatic CSV output for every agent plus a commercial-only CSV filtered on the “What we offer” section.
 - Retry mode that reads previous error logs, re-fetches only the failed agent/city URLs, and appends any recovered rows.
@@ -24,21 +25,28 @@ pip install -r requirements.txt  # or install the packages listed above manually
 ## Usage
 
 ### Scrape an Entire State
-Outputs land in `output/XXXX/<State>Agents.csv` and `ouput/XXXX/<State>CommercialAgents.csv`, with errors logged to `output/XXXX/<State>Errors.txt`.
+Progressive is the default carrier. Outputs land in `output/<Carrier>/<State>Agents.csv`, with errors logged to `output/<Carrier>/<State>Errors.txt`. Commercial rows are identified by the `Commercial` column.
 
 ```bash
 python state_scraper.py pennsylvania
+python state_scraper.py --carrier nationwide pa
 ```
 
 ### Scrape a Single City or Agency
-Pass `--url` with the exact XXXX link:
+Pass `--url` with the exact carrier link:
 
 ```bash
-# City (creates XXXX/pennsylvania_apollo_Agents.csv)
-python state_scraper.py --url "https://xxxxx/local-agent/pennsylvania/apollo/"
+# Progressive city
+python state_scraper.py --url "https://www.progressiveagent.com/local-agent/pennsylvania/apollo/"
 
-# Agency (creates XXXX/pennsylvania_apollo_example-agency_Agent.csv)
-python state_scraper.py --url "https://xxxx/local-agent/pennsylvania/apollo/example-agency/"
+# Progressive agency
+python state_scraper.py --url "https://www.progressiveagent.com/local-agent/pennsylvania/apollo/example-agency/"
+
+# Nationwide city
+python state_scraper.py --carrier nationwide --url "https://agency.nationwide.com/pa/apollo"
+
+# Nationwide agency
+python state_scraper.py --carrier nationwide --url "https://agency.nationwide.com/pa/apollo/15613/example-agency"
 ```
 
 ### Retry Only Failed URLs
@@ -46,30 +54,42 @@ Re-run any agent or city links captured in the state’s error log:
 
 ```bash
 python state_scraper.py pennsylvania --retry-errors
+python state_scraper.py --carrier nationwide pa --retry-errors
 ```
 
 ### Batch Multiple States
-Populate `states.txt` (one state slug per line) and run:
+Run all generated states for a carrier:
 
 ```bash
-./run_scraper.sh
- nohup ./run_scraper.sh > run.log 2>&1 & 
+./run_scraper.sh progressive
+./run_scraper.sh nationwide
+nohup ./run_scraper.sh nationwide > run.log 2>&1 &
 ```
 
 ### Convert CSVs to Excel
-Combine every CSV in a directory into one workbook (one sheet per file):
+Generate separate all-agent and commercial-agent workbooks from a carrier output directory. The commercial workbook is filtered from `*Agents.csv` rows where `Commercial` is `Y`.
 
 ```bash
-python csv_to_excel.py XXXX --output XXXX_agents.xlsx
+python csv_to_excel.py output/Progressive --all-output output/ProgressiveAllAgents.xlsx --commercial-output output/ProgressiveCommercialAgents.xlsx
+python csv_to_excel.py output/Nationwide --all-output output/NationwideAllAgents.xlsx --commercial-output output/NationwideCommercialAgents.xlsx
+```
+
+To combine every CSV in a directory into one workbook instead:
+
+```bash
+python csv_to_excel.py output/Nationwide --output output/NationwideAllCsvs.xlsx
 ```
 
 ## Project Structure
-- `state_scraper.py` – core scraper and retry logic.
-- `run_scraper.sh` – loops through `states.txt` and calls the scraper per state.
+- `state_scraper.py` – CLI dispatcher for supported carriers.
+- `scrapers/common.py` – shared HTTP, CSV, and error-log utilities.
+- `scrapers/progressive.py` – Progressive directory parser and retry logic.
+- `scrapers/nationwide.py` – Nationwide directory parser and retry logic.
+- `run_scraper.sh` – generates carrier states and calls the scraper per state.
 - `csv_to_excel.py` – CSV ➜ XLSX converter for the generated outputs.
-- `XXXX/` – created automatically to store CSVs and error logs.
+- `output/<Carrier>/` – created automatically to store CSVs and error logs.
 
 ## Notes
 - Scraper uses a browser-like User-Agent header and retry-enabled `requests.Session` to reduce throttling.
 - `.venv/`, `output/`, `input/`, and `archive/` are gitignored so local artifacts stay out of commits.
-- Inspect `XXXX/*Errors.txt` if an execution terminates earlier than expected; each line includes enough context to diagnose or retry.
+- Inspect `output/<Carrier>/*Errors.txt` if an execution terminates earlier than expected; each line includes enough context to diagnose or retry.
